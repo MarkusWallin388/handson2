@@ -9,7 +9,7 @@ from asap3 import Trajectory
 def calcenergy(a):
     
     """Function to print the potential, kinetic and total energy."""
-    epot = 0
+    epot = a.get_potential_energy() / len(a)
     ekin = a.get_kinetic_energy() / len(a)
 
     return {"epot":epot, "ekin":ekin, "T":ekin / (1.5 * units.kB), "etot": epot + ekin} 
