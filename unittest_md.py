@@ -1,22 +1,27 @@
-"""Demonstrates molecular dynamics with constant energy."""
-
+import sys, unittest
+from md import calcenergy
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase.md.verlet import VelocityVerlet
 from ase import units
-from asap3 import Trajectory
+from asap3 import EMT
 
-def calcenergy(a):
+class MdTests(unittest.TestCase):
     
-    """Function to print the potential, kinetic and total energy."""
-    epot = a.get_potential_energy() / len(a)
-    ekin = a.get_kinetic_energy() / len(a)
+    def test_calcenergy(self):
+        
+        atoms = FaceCenteredCubic(directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                            symbol="Cu",
+                            size=(10, 10, 10),
+                            pbc=True)
+        atoms.calc = EMT()
+        MaxwellBoltzmannDistribution(atoms, temperature_K=300)
+        x = calcenergy(atoms)
+        print(x['etot'])
 
-    return {"epot":epot, "ekin":ekin, "T":ekin / (1.5 * units.kB), "etot": epot + ekin} 
-#Energy per atom: Epot = %.3feV  Ekin = %.3feV (T=%3.0fK)  '
-#           'Etot = %.3feV' % (epot, ekin, ekin / (1.5 * units.kB), epot + ekin))
+        self.assertTrue(x['etot'] <= 0.0391 and x['etot'] >= 0.037)
 
-    
+
 
 def run_md():
 
@@ -44,19 +49,17 @@ def run_md():
 
     # We want to run MD with constant energy using the VelocityVerlet algorithm.
     dyn = VelocityVerlet(atoms, 5 * units.fs)  # 5 fs time step.
-    traj = Trajectory("cu.traj", "w", atoms)
-    dyn.attach(traj.write, interval=10)
 
     def printenergy(a=atoms):  # store a reference to atoms in the definition.
-        calculated_energy = calcenergy(a)
-        print('energy per atom: Epot = %.3feV  Ekin = %.3feV (T=%3.0fK)  '
-           'Etot = %.3feV' % (calculated_energy['epot'], calculated_energy['ekin'], calculated_energy['T'], calculated_energy['etot']))
+        print(calcenergy(a))
 
     
-    # Now run the 
-    dyn.attach(printenergy, interval=10)
-    printenergy()
-    dyn.run(200)
+
 
 if __name__ == "__main__":
-    run_md()
+    tests = [unittest.TestLoader().loadTestsFromTestCase(MdTests)]
+    testsuite = unittest.TestSuite(tests)
+    tests = [unittest.TestLoader().loadTestsFromTestCase(MdTests)]
+    testsuite = unittest.TestSuite(tests)
+    result = unittest.TextTestRunner(verbosity=0).run(testsuite)
+    sys.exit(not result.wasSuccessful())
